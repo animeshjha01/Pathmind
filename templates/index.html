@@ -1,983 +1,1620 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PathMind — AI Pathfinding Visualizer</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,300&display=swap" rel="stylesheet">
-<style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-:root {
-  --bg:       #06101d;
-  --surface:  #0b1726;
-  --surface2: #0f1f32;
-  --surface3: #142540;
-  --border:   #1a2e48;
-  --border2:  #243d5c;
-
-  --text:       #8aa8c4;
-  --text-bright:#d8eaf7;
-  --text-dim:   #3d5a78;
-
-  --cyan:   #00c8ef;
-  --gold:   #f5c842;
-  --green:  #00e07a;
-  --pink:   #ff3d6b;
-  --purple: #a560ff;
-  --orange: #ff8c38;
-  --hotpink:#e860c8;
-
-  --cell-size: 19px;
-
-  --font: 'JetBrains Mono', monospace;
-}
-
-body {
-  font-family: var(--font);
-  background: var(--bg);
-  color: var(--text);
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-/* ── Header ─────────────────────────────────────────────────── */
-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 10px 18px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.logo {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.logo h1 {
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--cyan);
-  letter-spacing: -0.3px;
-}
-
-.logo-sub {
-  font-size: 10px;
-  color: var(--text-dim);
-  font-weight: 300;
-}
-
-.header-chips {
-  margin-left: auto;
-  display: flex;
-  gap: 6px;
-}
-
-.chip {
-  padding: 2px 9px;
-  border: 1px solid var(--border2);
-  border-radius: 20px;
-  font-size: 9px;
-  color: var(--text-dim);
-  letter-spacing: 0.5px;
-}
-
-/* ── Layout ─────────────────────────────────────────────────── */
-.layout {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-}
-
-/* ── Left Sidebar ───────────────────────────────────────────── */
-.left-panel {
-  width: 210px;
-  min-width: 210px;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-}
-
-.panel-title {
-  font-size: 8px;
-  letter-spacing: 2.5px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  padding: 12px 14px 7px;
-}
-
-/* Algorithm buttons */
-.algo-list { display: flex; flex-direction: column; }
-
-.algo-btn {
-  all: unset;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 8px 14px;
-  cursor: pointer;
-  font-family: var(--font);
-  font-size: 11px;
-  color: var(--text);
-  border-left: 2px solid transparent;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
-}
-
-.algo-btn:hover { background: var(--surface2); }
-
-.algo-btn.active {
-  background: var(--surface3);
-  color: var(--text-bright);
-}
-
-.dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.abbr {
-  margin-left: auto;
-  font-size: 8px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  opacity: 0.45;
-}
-
-.sep {
-  height: 1px;
-  background: var(--border);
-  margin: 6px 14px;
-}
-
-/* Info card */
-.info-card {
-  padding: 12px 14px;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.info-algo-name {
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 1.3;
-}
-
-.info-desc {
-  font-size: 9.5px;
-  line-height: 1.65;
-  color: var(--text);
-  font-weight: 300;
-}
-
-.info-table { display: flex; flex-direction: column; gap: 0; }
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 9px;
-}
-.info-row:last-child { border-bottom: none; }
-
-.ik { color: var(--text-dim); }
-.iv { color: var(--text-bright); font-weight: 500; font-size: 9px; }
-
-.badge {
-  display: inline-flex;
-  padding: 1px 6px;
-  border-radius: 3px;
-  font-size: 7.5px;
-  font-weight: 700;
-  letter-spacing: 0.8px;
-  text-transform: uppercase;
-}
-.badge-yes { background: rgba(0,224,122,0.12); color: var(--green); }
-.badge-no  { background: rgba(255,61,107,0.12); color: var(--pink); }
-
-.tag-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  padding-top: 4px;
-}
-
-.tag {
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 7.5px;
-  background: var(--surface3);
-  color: var(--text-dim);
-  border: 1px solid var(--border);
-}
-
-/* ── Center ─────────────────────────────────────────────────── */
-.center {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 14px;
-  overflow: hidden;
-}
-
-/* Toolbar */
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-  justify-content: center;
-}
-
-.t-btn {
-  all: unset;
-  cursor: pointer;
-  font-family: var(--font);
-  font-size: 9.5px;
-  padding: 5px 11px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  color: var(--text);
-  background: var(--surface);
-  transition: all 0.12s;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.t-btn:hover { border-color: var(--border2); color: var(--text-bright); }
-.t-btn.active { border-color: var(--cyan); background: rgba(0,200,239,0.08); color: var(--cyan); }
-.t-btn.green  { border-color: var(--green); color: var(--green); }
-.t-btn.pink   { border-color: var(--pink); color: var(--pink); }
-
-.t-sep { width: 1px; height: 18px; background: var(--border); }
-
-.solve-btn {
-  all: unset;
-  cursor: pointer;
-  font-family: var(--font);
-  font-size: 10px;
-  font-weight: 700;
-  padding: 6px 22px;
-  border-radius: 4px;
-  border: 1px solid var(--cyan);
-  color: var(--cyan);
-  background: rgba(0,200,239,0.1);
-  transition: all 0.15s;
-  letter-spacing: 0.5px;
-}
-.solve-btn:hover { background: rgba(0,200,239,0.2); }
-.solve-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-
-.speed-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 9px;
-  color: var(--text-dim);
-}
-
-.speed-wrap input[type=range] {
-  width: 72px;
-  accent-color: var(--cyan);
-  cursor: pointer;
-}
-
-.dls-wrap {
-  display: none;
-  align-items: center;
-  gap: 6px;
-  font-size: 9px;
-  color: var(--text-dim);
-}
-
-.dls-wrap input[type=number] {
-  width: 42px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--text-bright);
-  font-family: var(--font);
-  font-size: 10px;
-  padding: 3px 6px;
-  border-radius: 4px;
-}
-
-/* ── Grid ───────────────────────────────────────────────────── */
-.grid-outer {
-  position: relative;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  overflow: hidden;
-  box-shadow: 0 0 40px rgba(0,200,239,0.04);
-}
-
-#grid {
-  display: grid;
-  gap: 1px;
-  background: var(--border);
-  user-select: none;
-  cursor: crosshair;
-}
-
-.cell {
-  width: var(--cell-size);
-  height: var(--cell-size);
-  background: var(--bg);
-  transition: background 0.06s;
-}
-
-.cell.wall     { background: #162035; }
-.cell.start    { background: var(--green)  !important; box-shadow: 0 0 5px var(--green); }
-.cell.end      { background: var(--pink)   !important; box-shadow: 0 0 5px var(--pink); }
-
-.cell.visited  { animation: visitCell 0.25s ease-out forwards; }
-.cell.path     { animation: pathCell  0.3s  ease-out forwards; }
-
-@keyframes visitCell {
-  0%   { background: #1e6090; transform: scale(0.5); }
-  60%  { background: #1a85b8; transform: scale(1.1); }
-  100% { background: #0e4d72; transform: scale(1); }
-}
-
-@keyframes pathCell {
-  0%   { background: var(--gold); transform: scale(1.25); box-shadow: 0 0 9px var(--gold); }
-  100% { background: var(--gold); transform: scale(1);    box-shadow: 0 0 4px var(--gold); }
-}
-
-/* Scan-line during solving */
-.grid-outer::after {
-  content: '';
-  position: absolute;
-  left: 0; top: 0;
-  width: 100%; height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(0,200,239,0.6), transparent);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s;
-}
-
-.grid-outer.solving::after {
-  opacity: 1;
-  animation: scanLine 1.8s linear infinite;
-}
-
-@keyframes scanLine {
-  0%   { top: 0; }
-  100% { top: 100%; }
-}
-
-/* ── Right Panel ────────────────────────────────────────────── */
-.right-panel {
-  width: 190px;
-  min-width: 190px;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  padding: 12px;
-  gap: 14px;
-  overflow-y: auto;
-}
-
-.status-bar {
-  padding: 8px 10px;
-  border-radius: 4px;
-  font-size: 9px;
-  line-height: 1.6;
-  border-left: 2px solid var(--cyan);
-  background: rgba(0,200,239,0.05);
-  color: var(--text);
-}
-.status-bar.success { border-color: var(--green); background: rgba(0,224,122,0.05); }
-.status-bar.fail    { border-color: var(--pink);  background: rgba(255,61,107,0.05); }
-
-.stats-block { display: flex; flex-direction: column; gap: 10px; }
-
-.stat-item { display: flex; flex-direction: column; gap: 3px; }
-
-.stat-lbl {
-  font-size: 7.5px;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 1.8px;
-}
-
-.stat-val {
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--text-bright);
-  line-height: 1;
-}
-
-.stat-val.cyan   { color: var(--cyan); }
-.stat-val.gold   { color: var(--gold); }
-.stat-val.green  { color: var(--green); }
-.stat-val.pink   { color: var(--pink); }
-.stat-val.sm     { font-size: 15px; }
-
-/* Legend */
-.legend { display: flex; flex-direction: column; gap: 5px; }
-
-.leg-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 9px;
-  color: var(--text-dim);
-}
-
-.leg-cell {
-  width: 12px;
-  height: 12px;
-  border-radius: 2px;
-  flex-shrink: 0;
-}
-
-/* Maze presets */
-.maze-wrap { display: flex; flex-direction: column; gap: 4px; }
-
-.maze-btn {
-  all: unset;
-  cursor: pointer;
-  font-family: var(--font);
-  font-size: 9px;
-  padding: 5px 9px;
-  border-radius: 3px;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-  background: var(--surface);
-  transition: all 0.12s;
-}
-
-.maze-btn:hover { border-color: var(--border2); color: var(--text); }
-
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>PathMind</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,700;0,800;1,300&family=Syne:wght@700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ── Tokens ──────────────────────────────────────────────────── */
+    :root {
+      --font-display: 'Syne', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+
+      --ink: #0f0e0d;
+      --paper: #f2efe8;
+      --paper2: #e8e4db;
+      --paper3: #ddd9cf;
+      --rule: #c8c3b8;
+      --rule2: #b0aba0;
+
+      --text: #0f0e0d;
+      --text-2: #5a5650;
+      --text-3: #9a958e;
+
+      --hi: #e8380d;
+      /* hot tomato accent */
+      --hi-light: rgba(232, 56, 13, 0.08);
+      --hi-mid: rgba(232, 56, 13, 0.18);
+
+      --go: #1a7a4a;
+      --stop: #c0321a;
+      --path: #d97706;
+
+      --cell-size: 18px;
+      --cell-bg: #ede9e1;
+      --cell-wall: #b0aba0;
+      --cell-gap: #c8c3b8;
+
+      --s-sm: 0 1px 0 rgba(0, 0, 0, 0.06);
+      --s-md: 0 2px 12px rgba(0, 0, 0, 0.1);
+      --s-lg: 0 8px 32px rgba(0, 0, 0, 0.14);
+
+      --r: 0px;
+      /* zero radius = brutalist */
+    }
+
+    [data-theme="dark"] {
+      --ink: #f0ece4;
+      --paper: #131210;
+      --paper2: #1c1a17;
+      --paper3: #252320;
+      --rule: #2e2b27;
+      --rule2: #3d3a35;
+
+      --text: #f0ece4;
+      --text-2: #8a8680;
+      --text-3: #504d49;
+
+      --hi: #ff5533;
+      --hi-light: rgba(255, 85, 51, 0.1);
+      --hi-mid: rgba(255, 85, 51, 0.2);
+
+      --go: #22c55e;
+      --stop: #ef4444;
+      --path: #fbbf24;
+
+      --cell-bg: #1a1814;
+      --cell-wall: #3d3a35;
+      --cell-gap: #252320;
+
+      --s-sm: 0 1px 0 rgba(0, 0, 0, 0.3);
+      --s-md: 0 2px 16px rgba(0, 0, 0, 0.5);
+      --s-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    /* ── Base ─────────────────────────────────────────────────────── */
+    html,
+    body {
+      font-family: var(--font-body);
+      background: var(--paper);
+      color: var(--text);
+      height: 100%;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      transition: background 0.3s, color 0.3s;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ───────────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: stretch;
+      height: 50px;
+      background: var(--ink);
+      flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Animated noise grain on header */
+    header::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .logo-block {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 0 20px;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo-text {
+      font-family: var(--font-display);
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.5px;
+      line-height: 1;
+    }
+
+    .logo-dot {
+      width: 6px;
+      height: 6px;
+      background: var(--hi);
+      border-radius: 50%;
+      margin-left: 3px;
+      margin-bottom: 12px;
+      animation: pulse-dot 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-dot {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.5;
+        transform: scale(0.7);
+      }
+    }
+
+    .header-algo-pill {
+      display: flex;
+      align-items: center;
+      padding: 0 18px;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      z-index: 1;
+    }
+
+    .algo-running-label {
+      font-family: var(--font-body);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.35);
+    }
+
+    .algo-running-name {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      margin-left: 8px;
+      transition: color 0.2s;
+    }
+
+    .header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: stretch;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hdr-btn {
+      all: unset;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 16px;
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.5);
+      letter-spacing: 0.3px;
+      transition: color 0.15s, background 0.15s;
+      gap: 6px;
+    }
+
+    .hdr-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .theme-icon {
+      font-size: 14px;
+    }
+
+    .menu-hdr-btn {
+      display: none;
+    }
+
+    /* ── Layout ───────────────────────────────────────────────────── */
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Left Panel ───────────────────────────────────────────────── */
+    .left-panel {
+      width: 224px;
+      min-width: 224px;
+      background: var(--paper2);
+      border-right: 1px solid var(--rule);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      transition: transform 0.25s cubic-bezier(.4, 0, .2, 1), background 0.3s;
+      z-index: 20;
+      scrollbar-width: thin;
+      scrollbar-color: var(--rule) transparent;
+    }
+
+    .panel-head {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--rule);
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+
+    .panel-head-label {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    /* Algo list */
+    .algo-list {
+      display: flex;
+      flex-direction: column;
+      padding: 8px;
+      gap: 2px;
+    }
+
+    .algo-btn {
+      all: unset;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-2);
+      border: 1px solid transparent;
+      transition: all 0.12s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .algo-btn::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 2px;
+      height: 100%;
+      background: currentColor;
+      transform: scaleY(0);
+      transform-origin: center;
+      transition: transform 0.15s;
+      opacity: 0.6;
+    }
+
+    .algo-btn:hover {
+      color: var(--text);
+      background: var(--paper3);
+    }
+
+    .algo-btn.active {
+      color: var(--hi);
+      background: var(--hi-light);
+      border-color: var(--hi-mid);
+    }
+
+    .algo-btn.active::after {
+      transform: scaleY(1);
+    }
+
+    .a-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: transform 0.15s;
+    }
+
+    .algo-btn.active .a-dot {
+      transform: scale(1.4);
+    }
+
+    .a-abbr {
+      margin-left: auto;
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      opacity: 0.35;
+    }
+
+    /* Info panel */
+    .info-panel {
+      border-top: 1px solid var(--rule);
+      flex: 1;
+    }
+
+    .info-inner {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .algo-title-display {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.3px;
+      transition: color 0.2s;
+    }
+
+    .algo-desc {
+      font-size: 11px;
+      line-height: 1.75;
+      color: var(--text-2);
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    .complexity-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .cx-card {
+      padding: 8px 10px;
+      background: var(--paper);
+      border: 1px solid var(--rule);
+      position: relative;
+    }
+
+    .cx-label {
+      font-size: 8px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 4px;
+    }
+
+    .cx-val {
+      font-family: var(--font-display);
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .prop-row {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .prop-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      border: 1px solid;
+      letter-spacing: 0.5px;
+    }
+
+    .prop-yes {
+      border-color: var(--go);
+      color: var(--go);
+      background: rgba(26, 122, 74, 0.07);
+    }
+
+    .prop-no {
+      border-color: var(--stop);
+      color: var(--stop);
+      background: rgba(192, 50, 26, 0.07);
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .tag {
+      padding: 2px 7px;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      background: var(--paper3);
+      color: var(--text-3);
+      border: 1px solid var(--rule);
+    }
+
+    /* ── Backdrop ─────────────────────────────────────────────────── */
+    .backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      z-index: 15;
+    }
+
+    /* ── Center ───────────────────────────────────────────────────── */
+    .center {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 12px;
+      overflow: hidden;
+      background: var(--paper);
+      transition: background 0.3s;
+      min-width: 0;
+    }
+
+    /* ── Mobile algo strip ────────────────────────────────────────── */
+    .algo-strip {
+      display: none;
+      width: 100%;
+      overflow-x: auto;
+      gap: 4px;
+      flex-shrink: 0;
+      scrollbar-width: none;
+    }
+
+    .algo-strip::-webkit-scrollbar {
+      display: none;
+    }
+
+    .strip-chip {
+      all: unset;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 10px;
+      font-weight: 700;
+      white-space: nowrap;
+      padding: 5px 12px;
+      border: 1px solid var(--rule);
+      color: var(--text-2);
+      background: var(--paper2);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-shrink: 0;
+      transition: all 0.12s;
+      letter-spacing: 0.3px;
+    }
+
+    .strip-chip.active {
+      border-color: var(--hi);
+      color: var(--hi);
+      background: var(--hi-light);
+    }
+
+    /* ── Toolbars ─────────────────────────────────────────────────── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+      flex-shrink: 0;
+    }
+
+    .t-btn {
+      all: unset;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 6px 13px;
+      border: 1px solid var(--rule);
+      color: var(--text-2);
+      background: var(--paper2);
+      transition: all 0.1s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+      letter-spacing: 0.2px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .t-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--hi);
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.15s;
+      z-index: 0;
+    }
+
+    .t-btn:hover {
+      border-color: var(--rule2);
+      color: var(--text);
+    }
+
+    .t-btn>* {
+      position: relative;
+      z-index: 1;
+    }
+
+    .t-btn.wall-mode {
+      border-color: var(--rule2);
+      color: var(--text);
+      background: var(--paper3);
+    }
+
+    .t-btn.go-mode {
+      border-color: var(--go);
+      color: var(--go);
+      background: rgba(26, 122, 74, 0.08);
+    }
+
+    .t-btn.stop-mode {
+      border-color: var(--stop);
+      color: var(--stop);
+      background: rgba(192, 50, 26, 0.08);
+    }
+
+    .t-btn.erase-mode {
+      border-color: var(--rule2);
+      color: var(--text-2);
+    }
+
+    .t-sep {
+      width: 1px;
+      height: 22px;
+      background: var(--rule);
+      flex-shrink: 0;
+    }
+
+    /* BIG solve button */
+    .solve-btn {
+      all: unset;
+      cursor: pointer;
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 800;
+      padding: 7px 28px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: var(--hi);
+      color: #fff;
+      border: 1px solid var(--hi);
+      transition: all 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .solve-btn::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateX(-100%);
+      transition: transform 0.3s;
+    }
+
+    .solve-btn:hover::after {
+      transform: translateX(0);
+    }
+
+    .solve-btn:hover {
+      box-shadow: 4px 4px 0 rgba(232, 56, 13, 0.3);
+      transform: translate(-1px, -1px);
+    }
+
+    .solve-btn:active {
+      transform: translate(0, 0);
+      box-shadow: none;
+    }
+
+    .solve-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .solve-btn:disabled::after {
+      display: none;
+    }
+
+    .speed-wrap {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      color: var(--text-3);
+    }
+
+    .speed-wrap input[type=range] {
+      width: 72px;
+      accent-color: var(--hi);
+      cursor: pointer;
+    }
+
+    .dls-wrap {
+      display: none;
+      align-items: center;
+      gap: 7px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-3);
+    }
+
+    .dls-wrap input[type=number] {
+      width: 48px;
+      background: var(--paper2);
+      border: 1px solid var(--rule);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 8px;
+    }
+
+    /* ── Grid ─────────────────────────────────────────────────────── */
+    .grid-wrap {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      width: 100%;
+    }
+
+    .grid-outer {
+      position: relative;
+      border: 1px solid var(--rule2);
+      overflow: hidden;
+      touch-action: none;
+      box-shadow: var(--s-md);
+      transition: box-shadow 0.3s;
+    }
+
+    .grid-outer.solving {
+      box-shadow: var(--s-lg), 0 0 0 2px var(--hi);
+    }
+
+    #grid {
+      display: grid;
+      gap: 1px;
+      background: var(--cell-gap);
+      user-select: none;
+    }
+
+    .cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      background: var(--cell-bg);
+      transition: background 0.04s;
+      position: relative;
+    }
+
+    .cell.wall {
+      background: var(--cell-wall);
+    }
+
+    .cell.start {
+      background: var(--go) !important;
+    }
+
+    .cell.start::before {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      background: rgba(255, 255, 255, 0.4);
+      clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+    }
+
+    .cell.end {
+      background: var(--stop) !important;
+    }
+
+    .cell.end::before {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      background: rgba(255, 255, 255, 0.4);
+      clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    }
+
+    .cell.visited {
+      animation: vCell 0.2s ease-out forwards;
+    }
+
+    .cell.path {
+      animation: pCell 0.25s ease-out forwards;
+    }
+
+    @keyframes vCell {
+      0% {
+        background: var(--hi);
+        transform: scale(0.5);
+      }
+
+      50% {
+        background: rgba(232, 56, 13, 0.5);
+        transform: scale(1.08);
+      }
+
+      100% {
+        background: rgba(232, 56, 13, 0.18);
+        transform: scale(1);
+      }
+    }
+
+    @keyframes pCell {
+      0% {
+        background: var(--path);
+        transform: scale(1.3);
+        box-shadow: 0 0 8px rgba(217, 119, 6, 0.6);
+      }
+
+      100% {
+        background: var(--path);
+        transform: scale(1);
+        box-shadow: none;
+      }
+    }
+
+    [data-theme="dark"] @keyframes vCell {
+      0% {
+        background: var(--hi);
+        transform: scale(0.5);
+      }
+
+      50% {
+        background: rgba(255, 85, 51, 0.5);
+        transform: scale(1.08);
+      }
+
+      100% {
+        background: rgba(255, 85, 51, 0.15);
+        transform: scale(1);
+      }
+    }
+
+    /* Scan pulse while solving */
+    .grid-outer::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 0%, var(--hi) 50%, transparent 100%);
+      opacity: 0;
+      pointer-events: none;
+      background-size: 100% 4px;
+      background-repeat: no-repeat;
+    }
+
+    .grid-outer.solving::after {
+      opacity: 0.25;
+      animation: scanPulse 1.6s ease-in-out infinite;
+    }
+
+    @keyframes scanPulse {
+      0% {
+        background-position: 0 -4px;
+      }
+
+      100% {
+        background-position: 0 100%;
+      }
+    }
+
+    /* ── Right Panel ──────────────────────────────────────────────── */
+    .right-panel {
+      width: 196px;
+      min-width: 196px;
+      background: var(--paper2);
+      border-left: 1px solid var(--rule);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      transition: background 0.3s;
+      scrollbar-width: thin;
+      scrollbar-color: var(--rule) transparent;
+    }
+
+    .rp-block {
+      padding: 14px 14px;
+      border-bottom: 1px solid var(--rule);
+    }
+
+    .rp-block:last-child {
+      border-bottom: none;
+    }
+
+    .rp-head {
+      font-family: var(--font-display);
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 10px;
+    }
+
+    /* Status */
+    .status-strip {
+      padding: 8px 10px;
+      border: 1px solid var(--rule);
+      background: var(--paper);
+      font-size: 10px;
+      line-height: 1.65;
+      font-weight: 500;
+      color: var(--text-2);
+      border-left: 2px solid var(--rule2);
+      transition: all 0.2s;
+    }
+
+    .status-strip.ok {
+      border-left-color: var(--go);
+      color: var(--go);
+      background: rgba(26, 122, 74, 0.05);
+    }
+
+    .status-strip.fail {
+      border-left-color: var(--stop);
+      color: var(--stop);
+      background: rgba(192, 50, 26, 0.05);
+    }
+
+    /* Stats */
+    .stat-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--rule);
+      border: 1px solid var(--rule);
+      margin-bottom: 1px;
+    }
+
+    .stat-pair:last-child {
+      margin-bottom: 0;
+    }
+
+    .stat-cell {
+      background: var(--paper);
+      padding: 10px 10px 8px;
+    }
+
+    .stat-lbl {
+      font-size: 7.5px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 4px;
+    }
+
+    .stat-num {
+      font-family: var(--font-display);
+      font-size: 26px;
+      font-weight: 800;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .stat-num.hi {
+      color: var(--hi);
+    }
+
+    .stat-num.amber {
+      color: var(--path);
+    }
+
+    .stat-num.go {
+      color: var(--go);
+    }
+
+    .stat-num.stop {
+      color: var(--stop);
+    }
+
+    .stat-num.sm {
+      font-size: 14px;
+    }
+
+    /* Legend */
+    .legend {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .leg {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-2);
+    }
+
+    .leg-sw {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      border: 1px solid var(--rule);
+    }
+
+    /* Presets */
+    .preset-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .preset-btn {
+      all: unset;
+      cursor: pointer;
+      font-family: var(--font-body);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 7px 10px;
+      border: 1px solid var(--rule);
+      color: var(--text-2);
+      background: var(--paper);
+      transition: all 0.1s;
+      letter-spacing: 0.2px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .preset-btn::before {
+      content: '→';
+      color: var(--text-3);
+      font-size: 11px;
+      transition: color 0.1s, transform 0.1s;
+      display: inline-block;
+    }
+
+    .preset-btn:hover {
+      color: var(--text);
+      background: var(--paper3);
+      border-color: var(--rule2);
+    }
+
+    .preset-btn:hover::before {
+      color: var(--hi);
+      transform: translateX(2px);
+    }
+
+    /* ── Mobile stats ─────────────────────────────────────────────── */
+    .m-stats {
+      display: none;
+      width: 100%;
+      flex-shrink: 0;
+      border: 1px solid var(--rule);
+      background: var(--rule);
+      gap: 1px;
+    }
+
+    .m-stat {
+      flex: 1;
+      background: var(--paper2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 7px 4px;
+    }
+
+    .m-stat-l {
+      font-size: 7px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-3);
+    }
+
+    .m-stat-v {
+      font-family: var(--font-display);
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.2;
+    }
+
+    .m-stat-v.hi {
+      color: var(--hi);
+    }
+
+    .m-stat-v.amber {
+      color: var(--path);
+    }
+
+    .m-stat-v.go {
+      color: var(--go);
+    }
+
+    .m-stat-v.stop {
+      color: var(--stop);
+    }
+
+    /* ── RESPONSIVE ───────────────────────────────────────────────── */
+    @media (max-width: 960px) {
+      .right-panel {
+        display: none;
+      }
+
+      :root {
+        --cell-size: 17px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      :root {
+        --cell-size: 14px;
+      }
+
+      body {
+        overflow: hidden;
+      }
+
+      .menu-hdr-btn {
+        display: flex;
+      }
+
+      .header-algo-pill {
+        display: none;
+      }
+
+      .left-panel {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 260px;
+        min-width: 0;
+        transform: translateX(-100%);
+        box-shadow: var(--s-lg);
+      }
+
+      .left-panel.open {
+        transform: translateX(0);
+      }
+
+      .backdrop.open {
+        display: block;
+      }
+
+      .algo-strip {
+        display: flex;
+      }
+
+      .center {
+        padding: 8px;
+        gap: 6px;
+      }
+
+      .m-stats {
+        display: flex;
+      }
+    }
+
+    @media (max-width: 380px) {
+      :root {
+        --cell-size: 12px;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<!-- ── Header ─────────────────────────────────────────────────── -->
-<header>
-  <div class="logo">
-    <h1>◈ PathMind</h1>
-    <span class="logo-sub">AI Pathfinding Visualizer</span>
-  </div>
-  <div class="header-chips">
-    <span class="chip">Flask · Python</span>
-    <span class="chip">Unit 2 — Search Algorithms</span>
-    <span class="chip">BFS · DFS · UCS · DLS · A* · Greedy</span>
-  </div>
-</header>
-
-<div class="layout">
-
-  <!-- ── Left Panel ──────────────────────────────────────────── -->
-  <div class="left-panel">
-    <div class="panel-title">Algorithm</div>
-    <div class="algo-list">
-      <button class="algo-btn active" id="btn-bfs"    onclick="selectAlgo('bfs')">
-        <div class="dot" style="background:#00c8ef"></div> Breadth-First Search <span class="abbr">BFS</span>
-      </button>
-      <button class="algo-btn" id="btn-dfs"    onclick="selectAlgo('dfs')">
-        <div class="dot" style="background:#a560ff"></div> Depth-First Search <span class="abbr">DFS</span>
-      </button>
-      <button class="algo-btn" id="btn-ucs"    onclick="selectAlgo('ucs')">
-        <div class="dot" style="background:#ff8c38"></div> Uniform Cost Search <span class="abbr">UCS</span>
-      </button>
-      <button class="algo-btn" id="btn-dls"    onclick="selectAlgo('dls')">
-        <div class="dot" style="background:#e860c8"></div> Depth-Limited Search <span class="abbr">DLS</span>
-      </button>
-      <button class="algo-btn" id="btn-astar"  onclick="selectAlgo('astar')">
-        <div class="dot" style="background:#f5c842"></div> A* Search <span class="abbr">A*</span>
-      </button>
-      <button class="algo-btn" id="btn-greedy" onclick="selectAlgo('greedy')">
-        <div class="dot" style="background:#00e07a"></div> Greedy Best-First <span class="abbr">GBFS</span>
-      </button>
+  <!-- ── Header ─────────────────────────────────────────────────── -->
+  <header>
+    <div class="logo-block">
+      <span class="logo-text">PathMind</span>
+      <div class="logo-dot"></div>
     </div>
 
-    <div class="sep"></div>
-
-    <div class="info-card" id="info-card">
-      <!-- Filled by JS -->
-    </div>
-  </div>
-
-  <!-- ── Center ──────────────────────────────────────────────── -->
-  <div class="center">
-
-    <!-- Toolbar row 1: drawing tools + maze -->
-    <div class="toolbar">
-      <button class="t-btn active" id="tool-wall"  onclick="setMode('wall')">▪ Wall</button>
-      <button class="t-btn"        id="tool-erase" onclick="setMode('erase')">✕ Erase</button>
-      <button class="t-btn green"  id="tool-start" onclick="setMode('start')">▶ Start</button>
-      <button class="t-btn pink"   id="tool-end"   onclick="setMode('end')">◎ End</button>
-      <div class="t-sep"></div>
-      <button class="t-btn" onclick="generateMaze('random')">⊞ Random</button>
-      <button class="t-btn" onclick="generateMaze('recursive')">⊟ Maze</button>
-      <button class="t-btn" onclick="generateMaze('spiral')">◎ Spiral</button>
-      <div class="t-sep"></div>
-      <button class="t-btn" onclick="clearViz()">↺ Clear path</button>
-      <button class="t-btn" onclick="resetAll()">⊘ Reset grid</button>
+    <div class="header-algo-pill">
+      <span class="algo-running-label">Running</span>
+      <span class="algo-running-name" id="hdr-algo-name">Breadth-First Search</span>
     </div>
 
-    <!-- Toolbar row 2: solve + speed -->
-    <div class="toolbar">
-      <button class="solve-btn" id="solve-btn" onclick="runSolve()">▶ Visualize</button>
-      <div class="t-sep"></div>
-      <div class="speed-wrap">
-        <span>Speed</span>
-        <input type="range" id="speed" min="1" max="100" value="65">
-        <span id="speed-lbl">fast</span>
+    <div class="header-right">
+      <button class="hdr-btn menu-hdr-btn" onclick="toggleMenu()">☰ Menu</button>
+      <button class="hdr-btn" onclick="toggleTheme()">
+        <span class="theme-icon" id="theme-icon">🌙</span>
+        <span id="theme-label">Dark</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="backdrop" id="backdrop" onclick="toggleMenu()"></div>
+
+  <div class="layout">
+
+    <!-- ── Left Panel ──────────────────────────────────────────── -->
+    <div class="left-panel" id="left-panel">
+      <div class="panel-head">
+        <span class="panel-head-label">Select Algorithm</span>
       </div>
-      <div class="t-sep"></div>
-      <div class="dls-wrap" id="dls-wrap">
-        <span>Depth limit</span>
-        <input type="number" id="dls-limit" value="25" min="1" max="150">
+      <div class="algo-list">
+        <button class="algo-btn active" id="btn-bfs" onclick="sel('bfs');closeMob()">
+          <div class="a-dot" style="background:#e8380d"></div>Breadth-First Search<span class="a-abbr">BFS</span>
+        </button>
+        <button class="algo-btn" id="btn-dfs" onclick="sel('dfs');closeMob()">
+          <div class="a-dot" style="background:#7c3aed"></div>Depth-First Search<span class="a-abbr">DFS</span>
+        </button>
+        <button class="algo-btn" id="btn-ucs" onclick="sel('ucs');closeMob()">
+          <div class="a-dot" style="background:#d97706"></div>Uniform Cost Search<span class="a-abbr">UCS</span>
+        </button>
+        <button class="algo-btn" id="btn-dls" onclick="sel('dls');closeMob()">
+          <div class="a-dot" style="background:#0891b2"></div>Depth-Limited Search<span class="a-abbr">DLS</span>
+        </button>
+        <button class="algo-btn" id="btn-astar" onclick="sel('astar');closeMob()">
+          <div class="a-dot" style="background:#059669"></div>A* Search<span class="a-abbr">A*</span>
+        </button>
+        <button class="algo-btn" id="btn-greedy" onclick="sel('greedy');closeMob()">
+          <div class="a-dot" style="background:#db2777"></div>Greedy Best-First<span class="a-abbr">GBFS</span>
+        </button>
+      </div>
+      <div class="info-panel">
+        <div class="info-inner" id="info-card"></div>
       </div>
     </div>
 
-    <!-- Grid -->
-    <div class="grid-outer" id="grid-outer">
-      <div id="grid"></div>
-    </div>
+    <!-- ── Center ──────────────────────────────────────────────── -->
+    <div class="center">
 
-  </div>
+      <div class="algo-strip">
+        <button class="strip-chip active" id="strip-bfs" onclick="sel('bfs')"><span
+            style="color:#e8380d">●</span>BFS</button>
+        <button class="strip-chip" id="strip-dfs" onclick="sel('dfs')"><span style="color:#7c3aed">●</span>DFS</button>
+        <button class="strip-chip" id="strip-ucs" onclick="sel('ucs')"><span style="color:#d97706">●</span>UCS</button>
+        <button class="strip-chip" id="strip-dls" onclick="sel('dls')"><span style="color:#0891b2">●</span>DLS</button>
+        <button class="strip-chip" id="strip-astar" onclick="sel('astar')"><span
+            style="color:#059669">●</span>A*</button>
+        <button class="strip-chip" id="strip-greedy" onclick="sel('greedy')"><span
+            style="color:#db2777">●</span>Greedy</button>
+      </div>
 
-  <!-- ── Right Panel ─────────────────────────────────────────── -->
-  <div class="right-panel">
+      <!-- Toolbar 1 -->
+      <div class="toolbar">
+        <button class="t-btn wall-mode" id="tool-wall" onclick="setMode('wall')">▪ Wall</button>
+        <button class="t-btn erase-mode" id="tool-erase" onclick="setMode('erase')">✕ Erase</button>
+        <button class="t-btn go-mode" id="tool-start" onclick="setMode('start')">▲ Start</button>
+        <button class="t-btn stop-mode" id="tool-end" onclick="setMode('end')">★ End</button>
+        <div class="t-sep"></div>
+        <button class="t-btn" onclick="generateMaze('random')">Random</button>
+        <button class="t-btn" onclick="generateMaze('recursive')">Maze</button>
+        <button class="t-btn" onclick="generateMaze('spiral')">Spiral</button>
+        <div class="t-sep"></div>
+        <button class="t-btn" onclick="clearViz()">↺ Clear</button>
+        <button class="t-btn" onclick="resetAll()">⊘ Reset</button>
+      </div>
 
-    <div class="panel-title" style="padding:0 0 6px">Status</div>
-    <div class="status-bar" id="status">Draw walls, pick an algorithm, then click Visualize</div>
-
-    <div>
-      <div class="panel-title" style="padding:0 0 8px">Statistics</div>
-      <div class="stats-block">
-        <div class="stat-item">
-          <div class="stat-lbl">Nodes explored</div>
-          <div class="stat-val cyan" id="s-nodes">—</div>
+      <!-- Toolbar 2 -->
+      <div class="toolbar">
+        <button class="solve-btn" id="solve-btn" onclick="runSolve()">▶ Visualize</button>
+        <div class="t-sep"></div>
+        <div class="speed-wrap">
+          <span>Speed</span>
+          <input type="range" id="speed" min="1" max="100" value="65">
+          <span id="speed-lbl">Fast</span>
         </div>
-        <div class="stat-item">
-          <div class="stat-lbl">Path length</div>
-          <div class="stat-val gold" id="s-path">—</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-lbl">Compute time</div>
-          <div class="stat-val sm" id="s-time">—</div>
-        </div>
-        <div class="stat-item">
-          <div class="stat-lbl">Result</div>
-          <div class="stat-val sm" id="s-found">—</div>
+        <div class="dls-wrap" id="dls-wrap">
+          <div class="t-sep"></div>
+          <span>Limit</span>
+          <input type="number" id="dls-limit" value="25" min="1" max="150">
         </div>
       </div>
+
+      <!-- Grid -->
+      <div class="grid-wrap">
+        <div class="grid-outer" id="grid-outer">
+          <div id="grid"></div>
+        </div>
+      </div>
+
+      <!-- Mobile stats -->
+      <div class="m-stats">
+        <div class="m-stat">
+          <div class="m-stat-l">Explored</div>
+          <div class="m-stat-v hi" id="ms-nodes">—</div>
+        </div>
+        <div class="m-stat">
+          <div class="m-stat-l">Path</div>
+          <div class="m-stat-v amber" id="ms-path">—</div>
+        </div>
+        <div class="m-stat">
+          <div class="m-stat-l">Time</div>
+          <div class="m-stat-v" id="ms-time" style="font-size:12px">—</div>
+        </div>
+        <div class="m-stat">
+          <div class="m-stat-l">Result</div>
+          <div class="m-stat-v" id="ms-found" style="font-size:12px">—</div>
+        </div>
+      </div>
+
     </div>
 
-    <div>
-      <div class="panel-title" style="padding:0 0 8px">Legend</div>
-      <div class="legend">
-        <div class="leg-item"><div class="leg-cell" style="background:#06101d;border:1px solid #1a2e48"></div>Empty</div>
-        <div class="leg-item"><div class="leg-cell" style="background:#162035"></div>Wall</div>
-        <div class="leg-item"><div class="leg-cell" style="background:#00e07a;box-shadow:0 0 4px #00e07a"></div>Start node</div>
-        <div class="leg-item"><div class="leg-cell" style="background:#ff3d6b;box-shadow:0 0 4px #ff3d6b"></div>End node</div>
-        <div class="leg-item"><div class="leg-cell" style="background:#0e4d72"></div>Explored</div>
-        <div class="leg-item"><div class="leg-cell" style="background:#f5c842;box-shadow:0 0 4px #f5c842"></div>Shortest path</div>
-      </div>
-    </div>
+    <!-- ── Right Panel ─────────────────────────────────────────── -->
+    <div class="right-panel">
 
-    <div>
-      <div class="panel-title" style="padding:0 0 8px">Maze presets</div>
-      <div class="maze-wrap">
-        <button class="maze-btn" onclick="generateMaze('random')">Random walls (30%)</button>
-        <button class="maze-btn" onclick="generateMaze('recursive')">Recursive division</button>
-        <button class="maze-btn" onclick="generateMaze('spiral')">Spiral corridor</button>
+      <div class="rp-block">
+        <div class="rp-head">Status</div>
+        <div class="status-strip" id="status">Draw walls · set start &amp; end · hit Visualize.</div>
       </div>
+
+      <div class="rp-block">
+        <div class="rp-head">Stats</div>
+        <div class="stat-pair">
+          <div class="stat-cell">
+            <div class="stat-lbl">Explored</div>
+            <div class="stat-num hi" id="s-nodes">—</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-lbl">Path len</div>
+            <div class="stat-num amber" id="s-path">—</div>
+          </div>
+        </div>
+        <div class="stat-pair">
+          <div class="stat-cell">
+            <div class="stat-lbl">Time</div>
+            <div class="stat-num sm" id="s-time">—</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-lbl">Result</div>
+            <div class="stat-num sm" id="s-found">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rp-block">
+        <div class="rp-head">Legend</div>
+        <div class="legend">
+          <div class="leg">
+            <div class="leg-sw" style="background:var(--cell-bg)"></div>Empty
+          </div>
+          <div class="leg">
+            <div class="leg-sw" style="background:var(--cell-wall)"></div>Wall
+          </div>
+          <div class="leg">
+            <div class="leg-sw" style="background:var(--go)"></div>Start ▲
+          </div>
+          <div class="leg">
+            <div class="leg-sw" style="background:var(--stop)"></div>End ★
+          </div>
+          <div class="leg">
+            <div class="leg-sw" style="background:rgba(232,56,13,0.18);border-color:rgba(232,56,13,0.3)"></div>Explored
+          </div>
+          <div class="leg">
+            <div class="leg-sw" style="background:var(--path)"></div>Path
+          </div>
+        </div>
+      </div>
+
+      <div class="rp-block">
+        <div class="rp-head">Maze Presets</div>
+        <div class="preset-list">
+          <button class="preset-btn" onclick="generateMaze('random')">Random walls</button>
+          <button class="preset-btn" onclick="generateMaze('recursive')">Recursive division</button>
+          <button class="preset-btn" onclick="generateMaze('spiral')">Spiral corridor</button>
+        </div>
+      </div>
+
     </div>
 
   </div>
-</div>
 
-<script>
-// ── Config ──────────────────────────────────────────────────────────────────
-const ROWS = 20, COLS = 35;
-
-// ── State ────────────────────────────────────────────────────────────────────
-let grid       = [];
-let cells      = [];
-let startNode  = [3, 5];
-let endNode    = [16, 29];
-let mode       = 'wall';
-let mouseDown  = false;
-let animating  = false;
-let currentAlgo = 'bfs';
-
-// ── Algorithm metadata ───────────────────────────────────────────────────────
-const ALGOS = {
-  bfs: {
-    name: 'Breadth-First Search', color: '#00c8ef',
-    ds: 'Queue (FIFO)', time: 'O(V + E)', space: 'O(V)',
-    optimal: true, complete: true,
-    desc: 'Explores all neighbors at the current depth before moving deeper. A FIFO queue ensures nodes are processed in discovery order. Guaranteed to find the shortest path in unweighted grids.',
-    tags: ['Queue', 'Uninformed', 'Optimal', 'Complete'],
-  },
-  dfs: {
-    name: 'Depth-First Search', color: '#a560ff',
-    ds: 'Stack (LIFO)', time: 'O(V + E)', space: 'O(V)',
-    optimal: false, complete: false,
-    desc: 'Plunges deep along one branch before backtracking. Uses a LIFO stack (or recursion). Memory-efficient but the path found is rarely shortest.',
-    tags: ['Stack', 'Uninformed', 'Backtracking'],
-  },
-  ucs: {
-    name: 'Uniform Cost Search', color: '#ff8c38',
-    ds: 'Priority Queue', time: 'O(V log V)', space: 'O(V)',
-    optimal: true, complete: true,
-    desc: 'Expands the cheapest frontier node first. Equivalent to Dijkstra\'s algorithm on a weighted graph. Optimal when step costs are non-negative.',
-    tags: ['Priority Queue', 'Uninformed', 'Weighted', 'Optimal'],
-  },
-  dls: {
-    name: 'Depth-Limited Search', color: '#e860c8',
-    ds: 'Stack (recursive)', time: 'O(b^l)', space: 'O(b·l)',
-    optimal: false, complete: false,
-    desc: 'DFS with a hard depth cutoff l. Prevents infinite traversal in deep graphs. Completeness depends on whether the goal lies within the depth limit.',
-    tags: ['Stack', 'Depth Limit', 'Uninformed', 'Bounded'],
-  },
-  astar: {
-    name: 'A* Search', color: '#f5c842',
-    ds: 'Priority Queue f=g+h', time: 'O(V log V)', space: 'O(V)',
-    optimal: true, complete: true,
-    desc: 'Combines true cost g(n) with Manhattan distance heuristic h(n). Explores fewest nodes while still guaranteeing optimality — when h is admissible.',
-    tags: ['Informed', 'Heuristic', 'f = g + h', 'Optimal'],
-  },
-  greedy: {
-    name: 'Greedy Best-First', color: '#00e07a',
-    ds: 'Priority Queue (h only)', time: 'O(V log V)', space: 'O(V)',
-    optimal: false, complete: false,
-    desc: 'Uses only h(n) — ignores actual cost. Rushes toward the goal greedily. Usually faster than A* but may produce suboptimal or no path.',
-    tags: ['Informed', 'Heuristic only', 'Generate & Test'],
-  },
-};
-
-// ── Grid initialisation ──────────────────────────────────────────────────────
-function init() {
-  grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-  buildDOM();
-  selectAlgo('bfs');
-  syncSpeedLabel();
-}
-
-function buildDOM() {
-  const el = document.getElementById('grid');
-  el.style.gridTemplateColumns = `repeat(${COLS}, var(--cell-size))`;
-  el.innerHTML = '';
-  cells = [];
-
-  for (let r = 0; r < ROWS; r++) {
-    cells[r] = [];
-    for (let c = 0; c < COLS; c++) {
-      const div = document.createElement('div');
-      div.className = 'cell';
-      div.addEventListener('mousedown', e => { e.preventDefault(); mouseDown = true; touch(r, c); });
-      div.addEventListener('mouseenter', () => { if (mouseDown) touch(r, c); });
-      el.appendChild(div);
-      cells[r][c] = div;
+  <script>
+    // ── Theme ─────────────────────────────────────────────────────────────────────
+    let dark = false;
+    function toggleTheme() {
+      dark = !dark;
+      document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+      document.getElementById('theme-icon').textContent = dark ? '☀️' : '🌙';
+      document.getElementById('theme-label').textContent = dark ? 'Light' : 'Dark';
     }
-  }
 
-  document.addEventListener('mouseup', () => mouseDown = false);
-  paint();
-}
+    // ── Grid dims ─────────────────────────────────────────────────────────────────
+    function gridDims() {
+      const w = window.innerWidth;
+      if (w <= 380) return [14, 20];
+      if (w <= 600) return [16, 24];
+      if (w <= 960) return [18, 28];
+      return [20, 35];
+    }
 
-// ── Cell interaction ─────────────────────────────────────────────────────────
-function touch(r, c) {
-  if (animating) return;
+    let ROWS, COLS, grid = [], cells = [], startNode, endNode;
+    let mode = 'wall', mouseDown = false, animating = false, currentAlgo = 'bfs';
 
-  if (mode === 'start') {
-    startNode = [r, c];
-    grid[r][c] = 0;
-    paint();
-  } else if (mode === 'end') {
-    endNode = [r, c];
-    grid[r][c] = 0;
-    paint();
-  } else if (!isSpecial(r, c)) {
-    grid[r][c] = (mode === 'wall') ? (grid[r][c] === 1 ? 0 : 1) : 0;
-    paintCell(r, c);
-  }
-}
+    const ALGOS = {
+      bfs: { name: 'Breadth-First Search', dot: '#e8380d', ds: 'Queue (FIFO)', time: 'O(V+E)', space: 'O(V)', opt: true, cmp: true, desc: 'Explores all neighbours at current depth before going deeper. FIFO queue guarantees the shortest path in unweighted grids.', tags: ['Queue', 'Uninformed', 'Optimal', 'Complete'] },
+      dfs: { name: 'Depth-First Search', dot: '#7c3aed', ds: 'Stack (LIFO)', time: 'O(V+E)', space: 'O(V)', opt: false, cmp: false, desc: 'Dives deep along one branch then backtracks. LIFO stack — memory-lean but rarely returns the shortest path.', tags: ['Stack', 'Uninformed', 'Backtracking'] },
+      ucs: { name: 'Uniform Cost Search', dot: '#d97706', ds: 'Priority Queue', time: 'O(V logV)', space: 'O(V)', opt: true, cmp: true, desc: "Dijkstra on a grid. Expands cheapest frontier node first — optimal for any non-negative step costs.", tags: ['Priority Queue', 'Uninformed', 'Weighted', 'Optimal'] },
+      dls: { name: 'Depth-Limited Search', dot: '#0891b2', ds: 'Stack (recursive)', time: 'O(bˡ)', space: 'O(b·l)', opt: false, cmp: false, desc: 'DFS with a hard depth cutoff l. Prevents infinite loops; completeness depends on the goal sitting within the limit.', tags: ['Stack', 'Bounded', 'Depth Limit'] },
+      astar: { name: 'A* Search', dot: '#059669', ds: 'Priority Queue f=g+h', time: 'O(V logV)', space: 'O(V)', opt: true, cmp: true, desc: 'Combines true cost g(n) with Manhattan heuristic h(n). Fewest nodes explored while still guaranteeing an optimal path.', tags: ['Informed', 'Heuristic', 'f=g+h', 'Optimal'] },
+      greedy: { name: 'Greedy Best-First', dot: '#db2777', ds: 'Priority Queue (h only)', time: 'O(V logV)', space: 'O(V)', opt: false, cmp: false, desc: 'Races toward the goal using h(n) alone — ignores true cost. Often fast, but trades optimality for speed.', tags: ['Informed', 'Heuristic only', 'Generate & Test'] },
+    };
 
-function isSpecial(r, c) {
-  return (r === startNode[0] && c === startNode[1]) ||
-         (r === endNode[0]   && c === endNode[1]);
-}
+    function init() {
+      [ROWS, COLS] = gridDims();
+      startNode = [Math.floor(ROWS * .5), Math.floor(COLS * .14)];
+      endNode = [Math.floor(ROWS * .5), Math.floor(COLS * .86)];
+      grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+      buildDOM();
+      sel('bfs');
+      syncSpeed();
+    }
 
-function paint() {
-  for (let r = 0; r < ROWS; r++)
-    for (let c = 0; c < COLS; c++)
-      paintCell(r, c);
-}
+    function buildDOM() {
+      const cs = getComputedStyle(document.documentElement).getPropertyValue('--cell-size').trim();
+      const el = document.getElementById('grid');
+      el.style.gridTemplateColumns = `repeat(${COLS}, ${cs})`;
+      el.innerHTML = '';
+      cells = [];
+      for (let r = 0; r < ROWS; r++) {
+        cells[r] = [];
+        for (let c = 0; c < COLS; c++) {
+          const d = document.createElement('div');
+          d.className = 'cell';
+          d.addEventListener('mousedown', e => { e.preventDefault(); mouseDown = true; touch(r, c); });
+          d.addEventListener('mouseenter', () => { if (mouseDown) touch(r, c); });
+          el.appendChild(d);
+          cells[r][c] = d;
+        }
+      }
+      document.addEventListener('mouseup', () => mouseDown = false);
+      const outer = document.getElementById('grid-outer');
+      outer.addEventListener('touchstart', tStart, { passive: false });
+      outer.addEventListener('touchmove', tMove, { passive: false });
+      paint();
+    }
 
-function paintCell(r, c) {
-  const el = cells[r][c];
-  el.className = 'cell';
-  if      (r === startNode[0] && c === startNode[1]) el.classList.add('start');
-  else if (r === endNode[0]   && c === endNode[1])   el.classList.add('end');
-  else if (grid[r][c] === 1)                          el.classList.add('wall');
-}
+    let lastTch = null;
+    function cellAt(e) {
+      const t = e.touches[0], el = document.elementFromPoint(t.clientX, t.clientY);
+      return el && el.classList.contains('cell') ? el : null;
+    }
+    function idxOf(el) { return [...document.querySelectorAll('.cell')].indexOf(el); }
+    function tStart(e) {
+      e.preventDefault(); lastTch = null;
+      const el = cellAt(e); if (!el) return;
+      const i = idxOf(el); if (i < 0) return;
+      const r = Math.floor(i / COLS), c = i % COLS;
+      lastTch = `${r},${c}`; touch(r, c);
+    }
+    function tMove(e) {
+      e.preventDefault();
+      const el = cellAt(e); if (!el) return;
+      const i = idxOf(el); if (i < 0) return;
+      const r = Math.floor(i / COLS), c = i % COLS;
+      const k = `${r},${c}`; if (k === lastTch) return;
+      lastTch = k; touch(r, c);
+    }
 
-// ── Drawing mode ─────────────────────────────────────────────────────────────
-function setMode(m) {
-  mode = m;
-  ['wall','erase','start','end'].forEach(id => {
-    const btn = document.getElementById(`tool-${id}`);
-    btn.classList.toggle('active', id === m);
-    btn.classList.toggle('green',  id === 'start');
-    btn.classList.toggle('pink',   id === 'end');
-    if (id === m) btn.classList.add('active');
-  });
-}
+    function touch(r, c) {
+      if (animating) return;
+      if (mode === 'start') { startNode = [r, c]; grid[r][c] = 0; paint(); }
+      else if (mode === 'end') { endNode = [r, c]; grid[r][c] = 0; paint(); }
+      else if (!spec(r, c)) { grid[r][c] = mode === 'wall' ? (grid[r][c] === 1 ? 0 : 1) : 0; paintCell(r, c); }
+    }
+    function spec(r, c) { return (r === startNode[0] && c === startNode[1]) || (r === endNode[0] && c === endNode[1]); }
+    function paint() { for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) paintCell(r, c); }
+    function paintCell(r, c) {
+      const el = cells[r][c]; el.className = 'cell';
+      if (r === startNode[0] && c === startNode[1]) el.classList.add('start');
+      else if (r === endNode[0] && c === endNode[1]) el.classList.add('end');
+      else if (grid[r][c] === 1) el.classList.add('wall');
+    }
 
-// ── Algorithm selector ────────────────────────────────────────────────────────
-function selectAlgo(algo) {
-  currentAlgo = algo;
-  Object.keys(ALGOS).forEach(a =>
-    document.getElementById(`btn-${a}`).classList.toggle('active', a === algo)
-  );
+    function setMode(m) {
+      mode = m;
+      document.getElementById('tool-wall').className = 't-btn wall-mode' + (m === 'wall' ? ' active' : '');
+      document.getElementById('tool-erase').className = 't-btn erase-mode' + (m === 'erase' ? ' active' : '');
+      document.getElementById('tool-start').className = 't-btn go-mode' + (m === 'start' ? ' active' : '');
+      document.getElementById('tool-end').className = 't-btn stop-mode' + (m === 'end' ? ' active' : '');
+    }
 
-  document.getElementById('dls-wrap').style.display = algo === 'dls' ? 'flex' : 'none';
+    function toggleMenu() {
+      document.getElementById('left-panel').classList.toggle('open');
+      document.getElementById('backdrop').classList.toggle('open');
+    }
+    function closeMob() {
+      if (window.innerWidth <= 600) {
+        document.getElementById('left-panel').classList.remove('open');
+        document.getElementById('backdrop').classList.remove('open');
+      }
+    }
 
-  const info = ALGOS[algo];
-  document.getElementById('info-card').innerHTML = `
-    <div class="info-algo-name" style="color:${info.color}">${info.name}</div>
-    <div class="info-desc">${info.desc}</div>
-    <div class="info-table">
-      <div class="info-row"><span class="ik">Data structure</span><span class="iv">${info.ds}</span></div>
-      <div class="info-row"><span class="ik">Time complexity</span><span class="iv">${info.time}</span></div>
-      <div class="info-row"><span class="ik">Space complexity</span><span class="iv">${info.space}</span></div>
-      <div class="info-row"><span class="ik">Optimal?</span><span class="iv">
-        <span class="badge ${info.optimal ? 'badge-yes' : 'badge-no'}">${info.optimal ? 'Yes' : 'No'}</span>
-      </span></div>
-      <div class="info-row"><span class="ik">Complete?</span><span class="iv">
-        <span class="badge ${info.complete ? 'badge-yes' : 'badge-no'}">${info.complete ? 'Yes' : 'No'}</span>
-      </span></div>
+    function sel(algo) {
+      currentAlgo = algo;
+      const info = ALGOS[algo];
+
+      Object.keys(ALGOS).forEach(a => {
+        document.getElementById(`btn-${a}`).classList.toggle('active', a === algo);
+        const s = document.getElementById(`strip-${a}`); if (s) s.classList.toggle('active', a === algo);
+      });
+
+      document.getElementById('dls-wrap').style.display = algo === 'dls' ? 'flex' : 'none';
+      document.getElementById('hdr-algo-name').textContent = info.name;
+
+      document.getElementById('info-card').innerHTML = `
+    <div class="algo-title-display" style="color:${info.dot}">${info.name}</div>
+    <div class="algo-desc">${info.desc}</div>
+    <div class="complexity-row">
+      <div class="cx-card"><div class="cx-label">Structure</div><div class="cx-val">${info.ds}</div></div>
+      <div class="cx-card"><div class="cx-label">Time</div><div class="cx-val">${info.time}</div></div>
+      <div class="cx-card"><div class="cx-label">Space</div><div class="cx-val">${info.space}</div></div>
+      <div class="cx-card">
+        <div class="cx-label">Properties</div>
+        <div class="prop-row" style="margin-top:4px">
+          <span class="prop-pill ${info.opt ? 'prop-yes' : 'prop-no'}">${info.opt ? '✓' : '✗'} Optimal</span>
+        </div>
+      </div>
     </div>
     <div class="tag-row">${info.tags.map(t => `<span class="tag">${t}</span>`).join('')}</div>
   `;
-}
-
-// ── Speed control ─────────────────────────────────────────────────────────────
-document.getElementById('speed').addEventListener('input', syncSpeedLabel);
-
-function syncSpeedLabel() {
-  const v = +document.getElementById('speed').value;
-  document.getElementById('speed-lbl').textContent =
-    v < 25 ? 'slow' : v < 55 ? 'medium' : v < 85 ? 'fast' : 'instant';
-}
-
-function stepDelay() {
-  const v = +document.getElementById('speed').value;
-  if (v >= 99) return 0;
-  return Math.round(75 * Math.pow(1 - v / 100, 1.6));
-}
-
-// ── Solve ─────────────────────────────────────────────────────────────────────
-async function runSolve() {
-  if (animating) return;
-  clearViz();
-
-  const btn = document.getElementById('solve-btn');
-  btn.disabled = true;
-  animating = true;
-  document.getElementById('grid-outer').classList.add('solving');
-  setStatus('Computing…', '');
-
-  try {
-    const res = await fetch('/api/solve', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        grid,
-        start:     startNode,
-        end:       endNode,
-        algorithm: currentAlgo,
-        limit:     +document.getElementById('dls-limit').value || 25,
-      }),
-    });
-
-    const data = await res.json();
-    if (data.error) { setStatus(`Error: ${data.error}`, 'fail'); return; }
-
-    await animate(data.visited, data.path, data.stats);
-
-  } catch (err) {
-    setStatus('Connection error — is Flask running on port 5000?', 'fail');
-  } finally {
-    animating = false;
-    btn.disabled = false;
-    document.getElementById('grid-outer').classList.remove('solving');
-  }
-}
-
-async function animate(visited, path, stats) {
-  const delay = stepDelay();
-
-  // --- Visited nodes ---
-  if (delay === 0) {
-    visited.forEach(([r, c]) => {
-      if (!isSpecial(r, c)) cells[r][c].classList.add('visited');
-    });
-  } else {
-    for (let i = 0; i < visited.length; i++) {
-      await sleep(delay);
-      const [r, c] = visited[i];
-      if (!isSpecial(r, c)) cells[r][c].classList.add('visited');
-      document.getElementById('s-nodes').textContent = i + 1;
     }
-  }
 
-  await sleep(delay === 0 ? 10 : 250);
+    document.getElementById('speed').addEventListener('input', syncSpeed);
+    function syncSpeed() {
+      const v = +document.getElementById('speed').value;
+      document.getElementById('speed-lbl').textContent = v < 25 ? 'Slow' : v < 55 ? 'Med' : v < 85 ? 'Fast' : 'Max';
+    }
+    function delay() {
+      const v = +document.getElementById('speed').value;
+      if (v >= 99) return 0;
+      return Math.round(75 * Math.pow(1 - v / 100, 1.6));
+    }
 
-  // --- Update stats ---
-  document.getElementById('s-nodes').textContent = stats.nodesExplored;
-  document.getElementById('s-path').textContent  = stats.found ? stats.pathLength : '—';
-  document.getElementById('s-time').textContent  = `${stats.timeMs} ms`;
-
-  const foundEl = document.getElementById('s-found');
-  foundEl.textContent = stats.found ? '✓ Found' : '✗ No path';
-  foundEl.className = `stat-val sm ${stats.found ? 'green' : 'pink'}`;
-
-  if (!stats.found) {
-    setStatus('No path found — remove some walls and try again', 'fail');
-    return;
-  }
-
-  // --- Path animation ---
-  setStatus(`Tracing optimal path (${stats.pathLength} steps)…`, 'success');
-
-  if (delay === 0) {
-    path.forEach(([r, c]) => {
-      if (!isSpecial(r, c)) {
-        cells[r][c].classList.remove('visited');
-        cells[r][c].classList.add('path');
-      }
-    });
-  } else {
-    for (const [r, c] of path) {
-      await sleep(28);
-      if (!isSpecial(r, c)) {
-        cells[r][c].classList.remove('visited');
-        cells[r][c].classList.add('path');
+    async function runSolve() {
+      if (animating) return;
+      clearViz();
+      const btn = document.getElementById('solve-btn');
+      btn.disabled = true; animating = true;
+      document.getElementById('grid-outer').classList.add('solving');
+      setStatus('Computing…', '');
+      try {
+        const res = await fetch('/api/solve', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ grid, start: startNode, end: endNode, algorithm: currentAlgo, limit: +document.getElementById('dls-limit').value || 25 })
+        });
+        const data = await res.json();
+        if (data.error) { setStatus(`Error: ${data.error}`, 'fail'); return; }
+        await animate(data.visited, data.path, data.stats);
+      } catch (e) {
+        setStatus('Connection error — is Flask running on port 5000?', 'fail');
+      } finally {
+        animating = false; btn.disabled = false;
+        document.getElementById('grid-outer').classList.remove('solving');
       }
     }
-  }
 
-  setStatus(
-    `Done · ${stats.nodesExplored} nodes explored · ${stats.pathLength} steps · ${stats.timeMs} ms`,
-    'success'
-  );
-}
-
-// ── Utilities ─────────────────────────────────────────────────────────────────
-const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-function setStatus(msg, cls) {
-  const el = document.getElementById('status');
-  el.textContent = msg;
-  el.className = `status-bar ${cls}`;
-}
-
-function clearViz() {
-  if (animating) return;
-  for (let r = 0; r < ROWS; r++)
-    for (let c = 0; c < COLS; c++)
-      cells[r][c].classList.remove('visited', 'path');
-
-  ['s-nodes','s-path'].forEach(id => document.getElementById(id).textContent = '—');
-  document.getElementById('s-time').textContent  = '—';
-  const fe = document.getElementById('s-found');
-  fe.textContent = '—';
-  fe.className = 'stat-val sm';
-  setStatus('Draw walls, pick an algorithm, then click Visualize', '');
-}
-
-function resetAll() {
-  if (animating) return;
-  grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-  clearViz();
-  paint();
-}
-
-// ── Maze generators ───────────────────────────────────────────────────────────
-function generateMaze(type) {
-  if (animating) return;
-  clearViz();
-  grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
-
-  if (type === 'random') {
-    for (let r = 0; r < ROWS; r++)
-      for (let c = 0; c < COLS; c++)
-        if (Math.random() < 0.30 && !isSpecial(r, c)) grid[r][c] = 1;
-
-  } else if (type === 'recursive') {
-    // Fill, then carve passages using recursive backtracking
-    for (let r = 0; r < ROWS; r++)
-      for (let c = 0; c < COLS; c++)
-        grid[r][c] = 1;
-
-    function carve(r, c) {
-      grid[r][c] = 0;
-      const dirs = [[-2,0],[2,0],[0,-2],[0,2]].sort(() => Math.random() - 0.5);
-      for (const [dr, dc] of dirs) {
-        const nr = r + dr, nc = c + dc;
-        if (nr > 0 && nr < ROWS-1 && nc > 0 && nc < COLS-1 && grid[nr][nc] === 1) {
-          grid[r + dr/2][c + dc/2] = 0;
-          carve(nr, nc);
+    async function animate(visited, path, stats) {
+      const d = delay();
+      if (d === 0) {
+        visited.forEach(([r, c]) => { if (!spec(r, c)) cells[r][c].classList.add('visited'); });
+      } else {
+        for (let i = 0; i < visited.length; i++) {
+          await sl(d);
+          const [r, c] = visited[i];
+          if (!spec(r, c)) cells[r][c].classList.add('visited');
+          sv('s-nodes', i + 1); sv('ms-nodes', i + 1);
         }
       }
+      await sl(d === 0 ? 10 : 280);
+
+      sv('s-nodes', stats.nodesExplored); sv('ms-nodes', stats.nodesExplored);
+      sv('s-path', stats.found ? stats.pathLength : '—'); sv('ms-path', stats.found ? stats.pathLength : '—');
+      sv('s-time', `${stats.timeMs}ms`); sv('ms-time', `${stats.timeMs}ms`);
+
+      const fe = document.getElementById('s-found'), mf = document.getElementById('ms-found');
+      if (stats.found) {
+        fe.textContent = '✓ Found'; fe.className = 'stat-num sm go';
+        mf.textContent = '✓'; mf.className = 'm-stat-v go';
+      } else {
+        fe.textContent = '✗ None'; fe.className = 'stat-num sm stop';
+        mf.textContent = '✗'; mf.className = 'm-stat-v stop';
+      }
+
+      if (!stats.found) { setStatus('No path — try removing some walls.', 'fail'); return; }
+      setStatus(`Tracing ${stats.pathLength} steps…`, '');
+
+      if (d === 0) {
+        path.forEach(([r, c]) => { if (!spec(r, c)) { cells[r][c].classList.remove('visited'); cells[r][c].classList.add('path'); } });
+      } else {
+        for (const [r, c] of path) { await sl(28); if (!spec(r, c)) { cells[r][c].classList.remove('visited'); cells[r][c].classList.add('path'); } }
+      }
+      setStatus(`Done — ${stats.nodesExplored} explored · ${stats.pathLength} steps · ${stats.timeMs}ms`, 'ok');
     }
 
-    carve(1, 1);
+    const sl = ms => new Promise(r => setTimeout(r, ms));
+    function sv(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
+    function setStatus(msg, cls) {
+      const el = document.getElementById('status');
+      if (!el) return; el.textContent = msg;
+      el.className = 'status-strip' + (cls ? ` ${cls}` : '');
+    }
 
-    // Clear start and end zones
-    [startNode, endNode].forEach(([sr, sc]) => {
-      grid[sr][sc] = 0;
-      [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc]) => {
-        const nr = sr+dr, nc = sc+dc;
-        if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) grid[nr][nc] = 0;
-      });
+    function clearViz() {
+      if (animating) return;
+      for (let r = 0; r < ROWS; r++)for (let c = 0; c < COLS; c++)cells[r][c].classList.remove('visited', 'path');
+      ['s-nodes', 's-path', 's-time', 'ms-nodes', 'ms-path', 'ms-time'].forEach(id => sv(id, '—'));
+      const fe = document.getElementById('s-found'); if (fe) { fe.textContent = '—'; fe.className = 'stat-num sm'; }
+      const mf = document.getElementById('ms-found'); if (mf) { mf.textContent = '—'; mf.className = 'm-stat-v'; }
+      setStatus('Draw walls · set start & end · hit Visualize.', '');
+    }
+
+    function resetAll() {
+      if (animating) return;
+      grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+      clearViz(); paint();
+    }
+
+    function generateMaze(type) {
+      if (animating) return;
+      clearViz();
+      grid = Array.from({ length: ROWS }, () => Array(COLS).fill(0));
+      if (type === 'random') {
+        for (let r = 0; r < ROWS; r++)for (let c = 0; c < COLS; c++)if (Math.random() < 0.3 && !spec(r, c)) grid[r][c] = 1;
+      } else if (type === 'recursive') {
+        for (let r = 0; r < ROWS; r++)for (let c = 0; c < COLS; c++)grid[r][c] = 1;
+        function carve(r, c) {
+          grid[r][c] = 0;
+          const dirs = [[-2, 0], [2, 0], [0, -2], [0, 2]].sort(() => Math.random() - .5);
+          for (const [dr, dc] of dirs) {
+            const nr = r + dr, nc = c + dc;
+            if (nr > 0 && nr < ROWS - 1 && nc > 0 && nc < COLS - 1 && grid[nr][nc] === 1) { grid[r + dr / 2][c + dc / 2] = 0; carve(nr, nc); }
+          }
+        }
+        carve(1, 1);
+        [startNode, endNode].forEach(([sr, sc]) => {
+          grid[sr][sc] = 0;
+          [[-1, 0], [1, 0], [0, -1], [0, 1]].forEach(([dr, dc]) => { const nr = sr + dr, nc = sc + dc; if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) grid[nr][nc] = 0; });
+        });
+      } else if (type === 'spiral') {
+        for (let r = 2; r < ROWS - 1; r += 4) {
+          for (let c = 0; c < COLS; c++)if (!spec(r, c)) grid[r][c] = 1;
+          grid[r][(Math.floor(r / 4) % 2 === 0) ? COLS - 2 : 1] = 0;
+        }
+        grid[startNode[0]][startNode[1]] = 0; grid[endNode[0]][endNode[1]] = 0;
+      }
+      paint();
+    }
+
+    let resizeT;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeT);
+      resizeT = setTimeout(() => { if (!animating) init(); }, 250);
     });
 
-  } else if (type === 'spiral') {
-    // Horizontal corridors with staggered openings
-    for (let r = 2; r < ROWS - 1; r += 4) {
-      for (let c = 0; c < COLS; c++) {
-        if (!isSpecial(r, c)) grid[r][c] = 1;
-      }
-      const opening = (Math.floor(r / 4) % 2 === 0) ? COLS - 2 : 1;
-      grid[r][opening] = 0;
-    }
-    grid[startNode[0]][startNode[1]] = 0;
-    grid[endNode[0]][endNode[1]] = 0;
-  }
-
-  paint();
-}
-
-// ── Boot ──────────────────────────────────────────────────────────────────────
-init();
-</script>
+    init();
+  </script>
 </body>
+
 </html>
